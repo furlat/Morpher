@@ -1,0 +1,34 @@
+Metadata-Version: 2.1
+Name: morpher
+Version: 0.1.0
+Summary: A framework for structured AI transformations using OpenAI's API
+Home-page: https://github.com/yourusername/Morpher
+Author: Your Name
+Author-email: your.email@example.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: pydantic
+Requires-Dist: openai>=1.0.0
+
+# Morpher
+
+Morpher is a framework for structured AI transformations using OpenAI's API. It provides a way to define abstractions and morphs between them, ensuring type safety and consistency in AI-generated content.
+
+## Installation
+
+To install Morpher, clone this repository and run:
+
+```
+pip install -e .
+```
+
+## Usage
+
+See the `examples/math_tutor.py` file for a usage example.
+
+## License
+
+This project is licensed under the MIT License.
