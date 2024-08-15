@@ -9,39 +9,39 @@ class EnglishNarrative(BaseModel):
         extra = "forbid"
 
 class Clause(BaseModel):
-    goal_oriented_learning: str = Field(..., description="Notepad to use for goal-oriented learning and in context improvement of the agent behavior - not accessible by user")
+    goal_oriented_learning: str = Field(..., description="Notepad for goal-oriented learning and in-context improvement")
     text: str = Field(..., description="A single clause from the narrative")
 
     class Config:
         extra = "forbid"
 
 class ClauseSegmentation(BaseModel):
-    goal_oriented_learning: str = Field(..., description="Notepad to use for goal-oriented learning and in context improvement of the agent behavior - not accessible by user")
-    text: str = Field(..., description="A single clause from the narrative")
+    goal_oriented_learning: str = Field(..., description="Notepad for goal-oriented learning and in-context improvement")
+    text: str = Field(..., description="The original narrative text")
     clauses: List[Clause] = Field(..., description="List of clauses from the narrative")
 
     class Config:
         extra = "forbid"
 
 class LambdaExpression(BaseModel):
-    goal_oriented_learning: str = Field(..., description="Notepad to use for goal-oriented learning and in context improvement of the agent behavior - not accessible by user")
-    text: str = Field(..., description="A single clause from the narrative")
+    goal_oriented_learning: str = Field(..., description="Notepad for goal-oriented learning and in-context improvement")
+    text: str = Field(..., description="The original clause text")
     expression: str = Field(..., description="Lambda calculus expression for a clause")
 
     class Config:
         extra = "forbid"
 
 class LambdaExpressions(BaseModel):
-    goal_oriented_learning: str = Field(..., description="Notepad to use for goal-oriented learning and in context improvement of the agent behavior - not accessible by user")
-    text: str = Field(..., description="A single clause from the narrative")
+    goal_oriented_learning: str = Field(..., description="Notepad for goal-oriented learning and in-context improvement")
+    text: str = Field(..., description="The original narrative text")
     expressions: List[LambdaExpression] = Field(..., description="List of lambda expressions for clauses")
 
     class Config:
         extra = "forbid"
 
 class DRSUpdate(BaseModel):
-    goal_oriented_learning: str = Field(..., description="Notepad to use for goal-oriented learning and in context improvement of the agent behavior - not accessible by user")
-    text: str = Field(..., description="A single clause from the narrative")
+    goal_oriented_learning: str = Field(..., description="Notepad for goal-oriented learning and in-context improvement")
+    text: str = Field(..., description="The original clause text")
     operation: str = Field(..., description="DRS update operation")
     arguments: List[str] = Field(..., description="Arguments for the DRS update operation")
 
@@ -49,16 +49,16 @@ class DRSUpdate(BaseModel):
         extra = "forbid"
 
 class DRSUpdates(BaseModel):
-    goal_oriented_learning: str = Field(..., description="Notepad to use for goal-oriented learning and in context improvement of the agent behavior - not accessible by user")
-    text: str = Field(..., description="A single clause from the narrative")
+    goal_oriented_learning: str = Field(..., description="Notepad for goal-oriented learning and in-context improvement")
+    text: str = Field(..., description="The original narrative text")
     updates: List[DRSUpdate] = Field(..., description="List of DRS update operations")
 
     class Config:
         extra = "forbid"
 
 class DRSEntity(BaseModel):
-    goal_oriented_learning: str = Field(..., description="Notepad to use for goal-oriented learning and in context improvement of the agent behavior - not accessible by user")
-    text: str = Field(..., description="A single clause from the narrative")
+    goal_oriented_learning: str = Field(..., description="Notepad for goal-oriented learning and in-context improvement")
+    text: str = Field(..., description="The original clause text")
     name: str = Field(..., description="Name of the entity in the DRS")
     type: str = Field(..., description="Type of the entity")
 
@@ -66,8 +66,8 @@ class DRSEntity(BaseModel):
         extra = "forbid"
 
 class DRSCondition(BaseModel):
-    goal_oriented_learning: str = Field(..., description="Notepad to use for goal-oriented learning and in context improvement of the agent behavior - not accessible by user")
-    text: str = Field(..., description="A single clause from the narrative")
+    goal_oriented_learning: str = Field(..., description="Notepad for goal-oriented learning and in-context improvement")
+    text: str = Field(..., description="The original clause text")
     predicate: str = Field(..., description="Predicate in the DRS condition")
     arguments: List[str] = Field(..., description="Arguments of the predicate")
 
@@ -75,8 +75,8 @@ class DRSCondition(BaseModel):
         extra = "forbid"
 
 class FinalDRS(BaseModel):
-    goal_oriented_learning: str = Field(..., description="Notepad to use for goal-oriented learning and in context improvement of the agent behavior - not accessible by user")
-    text: str = Field(..., description="A single clause from the narrative")
+    goal_oriented_learning: str = Field(..., description="Notepad for goal-oriented learning and in-context improvement")
+    text: str = Field(..., description="The original narrative text")
     entities: List[DRSEntity] = Field(..., description="List of entities in the DRS")
     conditions: List[DRSCondition] = Field(..., description="List of conditions in the DRS")
 

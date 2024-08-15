@@ -1,15 +1,60 @@
 import time
 import json
-from morpher import MorphRegistry
+from morpher import MorphRegistry, Morph
+from morpher.morph import PromptConfig, HistoryConfig, FeedbackConfig
 from morpher.morph_sequence import MorphSequence
-from drs_abstractions import *
-from drs_morphs import narrative_segmenter, clause_interpreter, lambda_to_drs_updater, drs_assembler
 from morpher.morph_evaluation import MorphEvaluator, MorphExecution
+from drs_abstractions import *
 from datetime import datetime
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Dict
+from typing import Dict, List
+from pprint import pprint
+
+def initialize_morph(morph_id, name, description, source, target, expert_role, instructions):
+    return Morph(
+        id=morph_id,
+        name=name,
+        description=description,
+        source=source,
+        target=target,
+        prompt_config=PromptConfig(
+            expert_role=expert_role,
+            additional_instructions=instructions
+        ),
+        history_config=HistoryConfig(use_history=False),
+        feedback_config=FeedbackConfig(use_feedback=False)
+    )
+
+# Initialize Morphs
+narrative_segmenter = initialize_morph(
+    "narrative_segmenter", "Narrative Segmenter", 
+    "Segments an English narrative into clauses",
+    english_narrative_abstraction, clause_segmentation_abstraction,
+    "linguistic expert", "Ensure each clause is a complete thought or action."
+)
+
+clause_interpreter = initialize_morph(
+    "clause_interpreter", "Clause Interpreter",
+    "Interprets clauses as lambda expressions",
+    clause_segmentation_abstraction, lambda_expressions_abstraction,
+    "semantic analyst", "Use standard lambda calculus notation."
+)
+
+lambda_to_drs_updater = initialize_morph(
+    "lambda_to_drs_updater", "Lambda to DRS Updater",
+    "Converts lambda expressions to DRS update operations",
+    lambda_expressions_abstraction, drs_updates_abstraction,
+    "formal semanticist", "Ensure DRS updates are atomic and follow standard DRT conventions."
+)
+
+drs_assembler = initialize_morph(
+    "drs_assembler", "DRS Assembler",
+    "Assembles DRS updates into a final DRS",
+    drs_updates_abstraction, final_drs_abstraction,
+    "DRS expert", "Ensure the final DRS is well-formed and captures all information from the original narrative."
+)
 
 def print_drs(drs: FinalDRS):
     output = "Entities:\n"
@@ -20,7 +65,7 @@ def print_drs(drs: FinalDRS):
         output += f"- {condition.predicate}({', '.join(condition.arguments)})\n"
     return output
 
-def create_drs_pipeline(use_feedback_history: bool):
+def create_drs_pipeline(use_history: bool, use_feedback: bool):
     narrative_to_drs = MorphSequence([
         narrative_segmenter,
         clause_interpreter,
@@ -28,22 +73,32 @@ def create_drs_pipeline(use_feedback_history: bool):
         drs_assembler
     ])
 
-    # Create separate evaluators for each step
+    # Create separate evaluators for each step (always using history)
     evaluators = {
-        step.name: MorphEvaluator(step.name) for step in narrative_to_drs.steps
+        step.name: MorphEvaluator.create_with_config(
+            step.name,
+            history_config=HistoryConfig(use_history=True, max_history_items=10)
+        ) for step in narrative_to_drs.steps
     }
 
-    # Set use_feedback_history for all steps and evaluators
+    # Set use_history and use_feedback for all steps
     for step in narrative_to_drs.steps:
-        step.use_feedback_history = use_feedback_history
-    for evaluator in evaluators.values():
-        evaluator.use_feedback_history = True
+        step.history_config.use_history = use_history
+        step.feedback_config.use_feedback = use_feedback
 
     return narrative_to_drs, evaluators
 
 def run_drs_pipeline(narrative: str, narrative_to_drs: MorphSequence, evaluators: Dict[str, MorphEvaluator], iteration: int, output_file):
+    print(f"\n{'='*50}")
+    print(f"Processing Narrative (Iteration {iteration}):")
+    print(f"{'='*50}")
+    print(f"Input: {narrative}")
+    print(f"Using history: {narrative_to_drs.steps[0].history_config.use_history}")
+    print(f"Using feedback: {narrative_to_drs.steps[0].feedback_config.use_feedback}")
+
     output = f"\nNarrative: {narrative}\n"
-    output += f"Using feedback history: {narrative_to_drs.steps[0].use_feedback_history}\n"
+    output += f"Using history: {narrative_to_drs.steps[0].history_config.use_history}\n"
+    output += f"Using feedback: {narrative_to_drs.steps[0].feedback_config.use_feedback}\n"
     output += f"Iteration: {iteration}\n"
     output += "Transforming to DRS...\n"
 
@@ -54,17 +109,28 @@ def run_drs_pipeline(narrative: str, narrative_to_drs: MorphSequence, evaluators
         input_data = EnglishNarrative(text=narrative)
         result = narrative_to_drs.forward(input_data)
         
+        print("\nFinal DRS:")
+        print(print_drs(result))
+        
         output += "\nResulting DRS:\n"
         output += print_drs(result)
         output += "\nIntermediate steps and evaluations:\n"
 
         intermediate_input = input_data
         for step in narrative_to_drs.steps:
-            output += f"\n{step.name}:\n"
+            print(f"\n{'-'*30}")
+            print(f"Step: {step.name}")
+            print(f"{'-'*30}")
+            
             intermediate_result = step.forward(intermediate_input)
+            
+            print("Input:")
+            pprint(intermediate_input.dict())
+            print("\nOutput:")
+            pprint(intermediate_result.dict())
+            
+            output += f"\n{step.name}:\n"
             output += json.dumps(intermediate_result.dict(), indent=2) + "\n"
-            print(f"Completed step: {step.name}")
-            # print(f"Output: {intermediate_result.dict()}")
             
             # Evaluate the step using its specific evaluator
             morph_execution = MorphExecution(
@@ -73,22 +139,27 @@ def run_drs_pipeline(narrative: str, narrative_to_drs: MorphSequence, evaluators
                 timestamp=datetime.now().isoformat()
             )
             evaluation = evaluators[step.name].forward(morph_execution)
-            step.backward(evaluation.dict())
             
             scores[step.name] = evaluation.accuracy
+            
+            print(f"\nEvaluation for {step.name}:")
+            print(f"Accuracy: {evaluation.accuracy:.2f}")
+            print(f"Vote: {evaluation.vote}")
+            print(f"Feedback: {evaluation.feedback}")
             
             output += f"\nEvaluation for {step.name}:\n"
             output += f"Accuracy: {evaluation.accuracy}\n"
             output += f"Feedback: {evaluation.feedback}\n"
             
             intermediate_input = intermediate_result
-            print(f"Completed step: {step.name} with accuracy: {evaluation.accuracy:.2f} and vote: {evaluation.vote}")
 
     except Exception as e:
+        print(f"Error in iteration {iteration}: {str(e)}")
         output += f"Error in iteration {iteration}: {str(e)}\n"
 
     end_time = time.time()
     execution_time = end_time - start_time
+    print(f"\nExecution time: {execution_time:.2f} seconds")
     output += f"\nExecution time: {execution_time:.2f} seconds\n"
 
     output_file.write(output)
@@ -98,28 +169,30 @@ def run_drs_pipeline(narrative: str, narrative_to_drs: MorphSequence, evaluators
 
 def plot_results(results, timestamp):
     steps = ["Narrative Segmenter", "Clause Interpreter", "Lambda to DRS Updater", "DRS Assembler"]
-    n_iterations = len(results["with_feedback"])  # Get the actual number of iterations
+    n_iterations = len(results["history_and_feedback"])
     iterations = range(1, n_iterations + 1)
 
-    fig, axs = plt.subplots(2, 2, figsize=(15, 15))
+    fig, axs = plt.subplots(2, 2, figsize=(20, 20))
     fig.suptitle("DRS Experiment Results")
 
     for i, step in enumerate(steps):
         ax = axs[i // 2, i % 2]
-        with_feedback = [np.mean([narrative["scores"].get(step, 0) for narrative in iteration]) 
-                         for iteration in results["with_feedback"]]
-        without_feedback = [np.mean([narrative["scores"].get(step, 0) for narrative in iteration]) 
-                            for iteration in results["without_feedback"]]
+        history_and_feedback = [np.mean([narrative["scores"].get(step, 0) for narrative in iteration]) 
+                                for iteration in results["history_and_feedback"]]
+        only_history = [np.mean([narrative["scores"].get(step, 0) for narrative in iteration]) 
+                        for iteration in results["only_history"]]
+        no_history_no_feedback = [np.mean([narrative["scores"].get(step, 0) for narrative in iteration]) 
+                                  for iteration in results["no_history_no_feedback"]]
         
-        ax.plot(iterations, with_feedback, label="With Feedback", marker='o')
-        ax.plot(iterations, without_feedback, label="Without Feedback", marker='s')
+        ax.plot(iterations, history_and_feedback, label="History and Feedback", marker='o')
+        ax.plot(iterations, only_history, label="Only History", marker='s')
+        ax.plot(iterations, no_history_no_feedback, label="No History, No Feedback", marker='^')
         ax.set_title(step)
         ax.set_xlabel("Iteration")
         ax.set_ylabel("Average Score")
         ax.legend()
         ax.grid(True)
 
-        # Set x-axis ticks to show all iteration numbers
         ax.set_xticks(iterations)
         ax.set_xticklabels(iterations)
 
@@ -128,6 +201,9 @@ def plot_results(results, timestamp):
     plt.close()
 
 def main():
+    print("Initializing DRS Experiment")
+    print("===========================")
+
     # Create Registry and register Abstractions and Morphs
     registry = MorphRegistry()
     registry.register_abstraction(english_narrative_abstraction)
@@ -141,50 +217,48 @@ def main():
     registry.register_morph(lambda_to_drs_updater)
     registry.register_morph(drs_assembler)
 
-    n_iterations = 10  # Set the number of iterations for debugging
+    print("Registered Abstractions:")
+    for abstraction in registry.list_abstractions():
+        print(f"- {abstraction.name}")
 
-    # Example narratives
-    # narratives = [
-    #     "John owns a car. The car is red. He drives it to work.",
-    #     "Every farmer who owns a donkey beats it. Pedro is a farmer.",
-    #     "Alice gave a book to Bob. He read it and enjoyed the story."
-    # ]
-    narratives_dict = {
-    1: "The cat sits on the mat. The mat is blue. It sleeps there all day.",
-    2: "A teacher teaches students. The students learn quickly and ask many questions. The teacher answers them patiently.",
-    3: "Maria bought a new dress. She wore it to the party. Everyone complimented her on her beautiful dress.",
-    4: "A scientist discovered a new planet. The planet orbits a distant star. The scientist shared the discovery with the world.",
-    5: "Tom has two dogs. One is large, and the other is small. He takes both dogs for a walk in the park every morning.",
-    6: "The chef cooked a delicious meal. The guests enjoyed the meal and praised the chef for the excellent cooking. The chef smiled and thanked them.",
-    7: "In the library, Sarah found an old book. The book was dusty and covered in cobwebs. She opened it and began to read the fascinating stories within.",
-    8: "A musician composed a beautiful symphony. The orchestra performed it flawlessly. The audience was moved to tears by the music, and they gave a standing ovation.",
-    9: "The detective solved the mystery. He gathered all the clues and questioned the suspects. In the end, he revealed the culprit, who confessed to the crime.",
-    10: "In a small village, a young boy discovered a magical stone. The stone granted him incredible powers. He used these powers to help the villagers, who were amazed and grateful for his kindness."
-}
+    print("\nRegistered Morphs:")
+    for morph in registry.list_morphs():
+        print(f"- {morph.name}")
 
+    n_iterations = 15  # Reduced for faster debugging
     narratives = [
-        
-        narratives_dict[10]
-       
+        "In a small village, a young boy discovered a magical stone. The stone granted him incredible powers. He used these powers to help the villagers, who were amazed and grateful for his kindness."
     ]
+
+    print(f"\nNumber of iterations: {n_iterations}")
+    print(f"Number of narratives: {len(narratives)}")
 
     # Ensure the output directory exists
     os.makedirs("output", exist_ok=True)
 
     results = {
-        "with_feedback": [],
-        "without_feedback": []
+        "history_and_feedback": [],
+        "only_history": [],
+        "no_history_no_feedback": []
     }
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    for use_feedback_history in [False,True]:
-        key = "with_feedback" if use_feedback_history else "without_feedback"
-        output_filename = f"output/drs_output_{key}_{timestamp}.md"
-        print(f"\nStarting runs {'with' if use_feedback_history else 'without'} feedback history")
+    experiments = [
+        ("history_and_feedback", True, True),
+        ("only_history", True, False),
+        ("no_history_no_feedback", False, False)
+    ]
+
+    for exp_name, use_history, use_feedback in experiments:
+        print(f"\n{'='*50}")
+        print(f"Running experiment: {exp_name}")
+        print(f"{'='*50}")
+
+        output_filename = f"output/drs_output_{exp_name}_{timestamp}.md"
         
-        # Create the pipeline and evaluators once for each feedback scenario
-        narrative_to_drs, evaluators = create_drs_pipeline(use_feedback_history)
+        # Create the pipeline and evaluators for each experiment condition
+        narrative_to_drs, evaluators = create_drs_pipeline(use_history, use_feedback)
         
         with open(output_filename, 'w') as output_file:
             for iteration in range(n_iterations):
@@ -197,19 +271,22 @@ def main():
                         "scores": scores,
                         "execution_time": execution_time
                     })
-                    print(f"Execution time: {execution_time:.2f} seconds")
-                results[key].append(iteration_results)
+                results[exp_name].append(iteration_results)
         
         print(f"Output saved to {output_filename}")
 
     # Save results to a JSON file
-    with open(f"output/drs_experiment_results_{timestamp}.json", "w") as f:
+    results_filename = f"output/drs_experiment_results_{timestamp}.json"
+    with open(results_filename, "w") as f:
         json.dump(results, f, indent=2)
+    print(f"\nDetailed results saved to {results_filename}")
 
     # Plot results
+    plot_filename = f"output/drs_experiment_results_{timestamp}.png"
     plot_results(results, timestamp)
+    print(f"Results plot saved to {plot_filename}")
 
-    print(f"\nExperiment completed. Results saved to output/drs_experiment_results_{timestamp}.json and output/drs_experiment_results_{timestamp}.png")
+    print("\nExperiment completed.")
 
 if __name__ == "__main__":
     main()
