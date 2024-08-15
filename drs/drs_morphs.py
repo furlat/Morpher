@@ -19,6 +19,10 @@ class NarrativeSegmenter(Morph):
         Your response must adhere to the following JSON schema:
         {json.dumps(schema, indent=2)}
         """
+        return message
+
+    def user_message(self, input_data: EnglishNarrative) -> str:
+        message= f"Segment this narrative into clauses and provide the result in JSON format: {input_data.text}"
         if self.use_feedback_history and self.execution_history:
             message += "\n\nPrevious feedback to consider:\n"
             for execution in reversed(self.execution_history):  # Consider last 5 executions
@@ -29,9 +33,6 @@ class NarrativeSegmenter(Morph):
         print("system_message")
         print(message)
         return message
-
-    def user_message(self, input_data: EnglishNarrative) -> str:
-        return f"Segment this narrative into clauses and provide the result in JSON format: {input_data.text}"
 
 class ClauseInterpreter(Morph):
     def __init__(self):
@@ -49,6 +50,12 @@ class ClauseInterpreter(Morph):
         Your response must adhere to the following JSON schema:
         {json.dumps(schema, indent=2)}
         """
+        
+        return message
+
+    def user_message(self, input_data: ClauseSegmentation) -> str:
+        clauses = [clause.text for clause in input_data.clauses]
+        message= f"Convert these clauses to lambda expressions and provide the result in JSON format: {json.dumps(clauses)}"
         if self.use_feedback_history and self.execution_history:
             message += "\n\nPrevious feedback to consider:\n"
             for execution in reversed(self.execution_history):  # Consider last 5 executions
@@ -59,10 +66,6 @@ class ClauseInterpreter(Morph):
         print("system_message")
         print(message)
         return message
-
-    def user_message(self, input_data: ClauseSegmentation) -> str:
-        clauses = [clause.text for clause in input_data.clauses]
-        return f"Convert these clauses to lambda expressions and provide the result in JSON format: {json.dumps(clauses)}"
 
 class LambdaToDRSUpdater(Morph):
     def __init__(self):
@@ -80,6 +83,12 @@ class LambdaToDRSUpdater(Morph):
         Your response must adhere to the following JSON schema:
         {json.dumps(schema, indent=2)}
         """
+        
+        return message
+
+    def user_message(self, input_data: LambdaExpressions) -> str:
+        expressions = [expr.expression for expr in input_data.expressions]
+        message =  f"Convert these lambda expressions to DRS updates and provide the result in JSON format: {json.dumps(expressions)}"
         if self.use_feedback_history and self.execution_history:
             message += "\n\nPrevious feedback to consider:\n"
             for execution in reversed(self.execution_history):  # Consider last 5 executions
@@ -90,10 +99,6 @@ class LambdaToDRSUpdater(Morph):
         print("system_message")
         print(message)
         return message
-
-    def user_message(self, input_data: LambdaExpressions) -> str:
-        expressions = [expr.expression for expr in input_data.expressions]
-        return f"Convert these lambda expressions to DRS updates and provide the result in JSON format: {json.dumps(expressions)}"
 
 class DRSAssembler(Morph):
     def __init__(self):
@@ -111,6 +116,12 @@ class DRSAssembler(Morph):
         Your response must adhere to the following JSON schema:
         {json.dumps(schema, indent=2)}
         """
+        
+        return message
+
+    def user_message(self, input_data: DRSUpdates) -> str:
+        updates = [update.dict() for update in input_data.updates]
+        message= f"Assemble these DRS updates into a final DRS and provide the result in JSON format: {json.dumps(updates)}"
         if self.use_feedback_history and self.execution_history:
             message += "\n\nPrevious feedback to consider:\n"
             for execution in reversed(self.execution_history):  # Consider last 5 executions
@@ -121,10 +132,6 @@ class DRSAssembler(Morph):
         print("system_message")
         print(message)
         return message
-
-    def user_message(self, input_data: DRSUpdates) -> str:
-        updates = [update.dict() for update in input_data.updates]
-        return f"Assemble these DRS updates into a final DRS and provide the result in JSON format: {json.dumps(updates)}"
 
 narrative_segmenter = NarrativeSegmenter()
 clause_interpreter = ClauseInterpreter()

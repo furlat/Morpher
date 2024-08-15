@@ -5,3 +5,4 @@
 /output
 *.pyc
 /drs/__pycache__
+*.pyc

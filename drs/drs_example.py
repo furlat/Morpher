@@ -36,8 +36,8 @@ def create_drs_pipeline(use_feedback_history: bool):
     # Set use_feedback_history for all steps and evaluators
     for step in narrative_to_drs.steps:
         step.use_feedback_history = use_feedback_history
-    # for evaluator in evaluators.values():
-    #     # evaluator.use_feedback_history = use_feedback_history
+    for evaluator in evaluators.values():
+        evaluator.use_feedback_history = True
 
     return narrative_to_drs, evaluators
 
@@ -82,7 +82,7 @@ def run_drs_pipeline(narrative: str, narrative_to_drs: MorphSequence, evaluators
             output += f"Feedback: {evaluation.feedback}\n"
             
             intermediate_input = intermediate_result
-            print(f"Completed step: {step.name} with accuracy: {evaluation.accuracy:.2f}")
+            print(f"Completed step: {step.name} with accuracy: {evaluation.accuracy:.2f} and vote: {evaluation.vote}")
 
     except Exception as e:
         output += f"Error in iteration {iteration}: {str(e)}\n"

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Dict, Any, Type, List
+from typing import Dict, Any, Type, List, Literal
 from datetime import datetime
 from morpher.abstraction import Abstraction
 from morpher.morph import Morph
@@ -18,8 +18,10 @@ class MorphExecutionAbstraction(Abstraction):
     model: Type[MorphExecution] = MorphExecution
 
 class EvaluationResult(BaseModel):
+    vote: Literal["insufficient", "below_average", "average", "above_average", "excellent"] = Field(..., description="Vote on the morph execution")
     accuracy: float = Field(..., description="Accuracy score of the morph execution")
     feedback: str = Field(..., description="Detailed feedback on the morph execution")
+   
 
     class Config:
         extra = "forbid"
