@@ -40,6 +40,8 @@ class Morph(BaseModel):
                     message += f"Input: {execution.input_data}\n"
                     message += f"Output: {execution.output_data}\n"
                     message += f"Feedback: {execution.evaluation.get('feedback', 'No feedback provided')}\n\n"
+        print("system_message")
+        print(message)
         return message
 
     def user_message(self, input_data: Any) -> str:

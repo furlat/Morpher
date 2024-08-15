@@ -29,12 +29,13 @@ class EvaluationAbstraction(Abstraction):
 
 class MorphEvaluator(Morph):
     feedback_history: List[Dict[str, Any]] = Field(default_factory=list, description="History of feedbacks provided")
+    use_feedback_history: bool = Field(default=False, description="Toggle to use feedback history")
 
-    def __init__(self):
+    def __init__(self, morph_name: str):
         super().__init__(
-            id="morph_evaluator",
-            name="Morph Evaluator",
-            description="Evaluates the quality of a morph execution",
+            id=f"{morph_name}_evaluator",
+            name=f"{morph_name} Evaluator",
+            description=f"Evaluates the quality of {morph_name} execution",
             source=MorphExecutionAbstraction(
                 id="morph_execution",
                 name="Morph Execution",
@@ -53,7 +54,7 @@ class MorphEvaluator(Morph):
         Your response must adhere to the following JSON schema:
         {json.dumps(schema, indent=2)}
         """
-        if self.feedback_history:
+        if self.use_feedback_history and self.feedback_history:
             message += "\n\nPrevious feedbacks to consider:\n"
             for feedback in reversed(self.feedback_history[-5:]):  # Consider last 5 feedbacks
                 message += f"Input: {feedback['input']}\n"
@@ -66,11 +67,10 @@ class MorphEvaluator(Morph):
 
     def forward(self, input_data: MorphExecution) -> EvaluationResult:
         result = super().forward(input_data)
-        self.feedback_history.append({
-            "input": input_data.input_data,
-            "output": input_data.output_data,
-            "feedback": result.feedback
-        })
+        if self.use_feedback_history:
+            self.feedback_history.append({
+                "input": input_data.input_data,
+                "output": input_data.output_data,
+                "feedback": result.feedback
+            })
         return result
-
-morph_evaluator = MorphEvaluator()

@@ -15,10 +15,20 @@ class NarrativeSegmenter(Morph):
 
     def system_message(self) -> str:
         schema = self.target.model.model_json_schema()
-        return f"""You are a linguistic expert. Segment the given narrative into clauses.
+        message= f"""You are a linguistic expert. Segment the given narrative into clauses.
         Your response must adhere to the following JSON schema:
         {json.dumps(schema, indent=2)}
         """
+        if self.use_feedback_history and self.execution_history:
+            message += "\n\nPrevious feedback to consider:\n"
+            for execution in reversed(self.execution_history):  # Consider last 5 executions
+                if execution.evaluation:
+                    message += f"Input: {execution.input_data}\n"
+                    message += f"Output: {execution.output_data}\n"
+                    message += f"Feedback: {execution.evaluation.get('feedback', 'No feedback provided')}\n\n"
+        print("system_message")
+        print(message)
+        return message
 
     def user_message(self, input_data: EnglishNarrative) -> str:
         return f"Segment this narrative into clauses and provide the result in JSON format: {input_data.text}"
@@ -35,10 +45,20 @@ class ClauseInterpreter(Morph):
 
     def system_message(self) -> str:
         schema = self.target.model.model_json_schema()
-        return f"""You are a linguistic expert. Convert the given clauses to lambda calculus expressions.
+        message= f"""You are a linguistic expert. Convert the given clauses to lambda calculus expressions.
         Your response must adhere to the following JSON schema:
         {json.dumps(schema, indent=2)}
         """
+        if self.use_feedback_history and self.execution_history:
+            message += "\n\nPrevious feedback to consider:\n"
+            for execution in reversed(self.execution_history):  # Consider last 5 executions
+                if execution.evaluation:
+                    message += f"Input: {execution.input_data}\n"
+                    message += f"Output: {execution.output_data}\n"
+                    message += f"Feedback: {execution.evaluation.get('feedback', 'No feedback provided')}\n\n"
+        print("system_message")
+        print(message)
+        return message
 
     def user_message(self, input_data: ClauseSegmentation) -> str:
         clauses = [clause.text for clause in input_data.clauses]
@@ -56,10 +76,20 @@ class LambdaToDRSUpdater(Morph):
 
     def system_message(self) -> str:
         schema = self.target.model.model_json_schema()
-        return f"""You are a linguistic expert. Convert the given lambda expressions to DRS update operations.
+        message= f"""You are a linguistic expert. Convert the given lambda expressions to DRS update operations.
         Your response must adhere to the following JSON schema:
         {json.dumps(schema, indent=2)}
         """
+        if self.use_feedback_history and self.execution_history:
+            message += "\n\nPrevious feedback to consider:\n"
+            for execution in reversed(self.execution_history):  # Consider last 5 executions
+                if execution.evaluation:
+                    message += f"Input: {execution.input_data}\n"
+                    message += f"Output: {execution.output_data}\n"
+                    message += f"Feedback: {execution.evaluation.get('feedback', 'No feedback provided')}\n\n"
+        print("system_message")
+        print(message)
+        return message
 
     def user_message(self, input_data: LambdaExpressions) -> str:
         expressions = [expr.expression for expr in input_data.expressions]
@@ -77,10 +107,20 @@ class DRSAssembler(Morph):
 
     def system_message(self) -> str:
         schema = self.target.model.model_json_schema()
-        return f"""You are a linguistic expert. Assemble the given DRS updates into a final DRS.
+        message= f"""You are a linguistic expert. Assemble the given DRS updates into a final DRS.
         Your response must adhere to the following JSON schema:
         {json.dumps(schema, indent=2)}
         """
+        if self.use_feedback_history and self.execution_history:
+            message += "\n\nPrevious feedback to consider:\n"
+            for execution in reversed(self.execution_history):  # Consider last 5 executions
+                if execution.evaluation:
+                    message += f"Input: {execution.input_data}\n"
+                    message += f"Output: {execution.output_data}\n"
+                    message += f"Feedback: {execution.evaluation.get('feedback', 'No feedback provided')}\n\n"
+        print("system_message")
+        print(message)
+        return message
 
     def user_message(self, input_data: DRSUpdates) -> str:
         updates = [update.dict() for update in input_data.updates]
